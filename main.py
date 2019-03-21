@@ -3,6 +3,7 @@ import random
 import math
 import operator
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.neighbors import DistanceMetric
 
 def randonintlist(m, n):
     randonList = []
@@ -57,6 +58,7 @@ def randonObjectList(training, validation, test, ClassM, ClassR, columns):
 def euclideanDistance(instance1, instance2, length):
     distance = 0
     for x in range(length):
+       # print(instance1[x], instance2[x])
         distance += pow((instance1[x] - instance2[x]), 2)
     return math.sqrt(distance)
 
@@ -64,8 +66,9 @@ def euclideanDistance(instance1, instance2, length):
 def getNeighbors(training, testInstance, k):
     distancies = []
     for x in training.iterrows():
-        distancies.append((euclideanDistance(x[1], testInstance[1], 60), x[0]))
+        distancies.append((euclideanDistance(x[1], testInstance, 60), x[0]))
     distancies.sort(key=operator.itemgetter(0))
+    print(distancies)
     neighbors = []
     for x in range(k):
         neighbors.append(distancies[x])
@@ -270,36 +273,32 @@ R = df.loc[df['Class'] == 'R']
 M = M.reset_index(drop=True)
 R = R.reset_index(drop=True)
 #findingthebestK(M, R, df)
-ks = [5, 7, 5]
-
-rar = mediaacuracia(M, R, df, ks)
-
-print(rar)
+#ks = [5, 7, 5]
+#rar = mediaacuracia(M, R, df, ks)
+#print(rar)
 
 
-#MR = pandas.DataFrame(columns=df.columns)
-#MR = MR.append(pandas.Series(M.iloc[0], index=MR.columns), ignore_index=True)
-#MR = MR.append(pandas.Series(R.iloc[0], index=MR.columns), ignore_index=True)
-#MR = MR.append(pandas.Series(R.iloc[1], index=MR.columns), ignore_index=True)
-#MR = MR.append(pandas.Series(R.iloc[3], index=MR.columns), ignore_index=True)
-#print(MR)
-#MR = MR.drop(MR.index[2])
-#print(MR)
-# training = pandas.DataFrame(columns=df.columns)
-# validation = pandas.DataFrame(columns=df.columns)
-# test = pandas.DataFrame(columns=df.columns)
-# response = randonObjectList(training, validation, test, M, R, df.columns)
-# training = response[0]
-# validation = response[1]
-# test = response[2]
-# neighbors = getNeighbors(training, test.iloc[0], 10)
-# print(neighbors)
-# print(training)
-# print(validation)
-# print(test)
+training = pandas.DataFrame(columns=df.columns)
+validation = pandas.DataFrame(columns=df.columns)
+test = pandas.DataFrame(columns=df.columns)
+response = randonObjectList(training, validation, test, M, R, df.columns)
+training = response[0]
+validation = response[1]
+test = response[2]
+
+# neighbors = getNeighbors(training, test.iloc[0], 1)
+#print(neighbors)
+print(training)
+print(validation)
+print(test)
+dist = DistanceMetric.get_metric('euclidean')
+print(training.iloc[0, :59])
+print(training.iloc[1, :59])
+
+print(euclideanDistance(training.iloc[0], training.iloc[1], 60))
 # responsebyvote(training, neighbors)
 # responsebyinverseEuclidian(training, neighbors)
-# responsebyweightedvote(training, neighbors)
+# print(responsebyweightedvote(training, neighbors))
 # print(test.iloc[0][60])
 # n = randonintlist(100, 10)
 # n.sort()
