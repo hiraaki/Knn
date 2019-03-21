@@ -2,6 +2,7 @@ import pandas
 import random
 import math
 import operator
+from sklearn.neighbors import KNeighborsClassifier
 
 def randonintlist(m, n):
     randonList = []
@@ -62,13 +63,12 @@ def euclideanDistance(instance1, instance2, length):
 
 def getNeighbors(training, testInstance, k):
     distancies = []
-    for i in range(len(training.index)):
-        distancies.append((euclideanDistance(training.iloc[i], testInstance, 60), i))
+    for x in training.iterrows():
+        distancies.append((euclideanDistance(x[1], testInstance[1], 60), x[0]))
     distancies.sort(key=operator.itemgetter(0))
-    neighbors =[]
+    neighbors = []
     for x in range(k):
         neighbors.append(distancies[x])
-    print(distancies)
     return neighbors
 
 
@@ -81,11 +81,13 @@ def responsebyvote(training, neighbors):
             mine += 1
         else:
             rock += 1
-    print(mine, rock)
+    # print(mine, rock)
     if mine < rock:
-        print("Its a Rock")
+        # print("Its a Rock")
+        return 'R'
     else:
-        print("Its a Mine")
+        # print("Its a Mine")
+        return 'W'
 
 
 def inverseEuclidian(neighbors):
@@ -98,10 +100,10 @@ def inverseEuclidian(neighbors):
 def responsebyinverseEuclidian(training, neighbors):
     mine = 0
     rock = 0
-    print(neighbors)
+    # print(neighbors)
     neighbors = inverseEuclidian(neighbors)
     neighbors.sort(key=operator.itemgetter(0))
-    print(neighbors)
+    # print(neighbors)
 
     for x in neighbors:
         #print(training.iloc[x[1]])
@@ -109,11 +111,13 @@ def responsebyinverseEuclidian(training, neighbors):
             mine += x[0]
         else:
             rock += x[0]
-    print(mine, rock)
+    # print(mine, rock)
     if mine > rock:
-        print("Its a Rock")
+        return 'R'
+        # print("Its a Rock")
     else:
-        print("Its a Mine")
+        return 'M'
+        # print("Its a Mine")
 
 
 def normalizeddistance(neighbors):
@@ -129,25 +133,26 @@ def normalizeddistance(neighbors):
 def responsebyweightedvote(training, neighbors):
     mine = 0
     rock = 0
-    print(neighbors)
+    # print(neighbors)
     neighbors = inverseEuclidian(neighbors)
-    print(neighbors)
+    # print(neighbors)
     for x in neighbors:
         #print(training.iloc[x[1]])
         if training.iloc[x[1]][60] == 'M':
             mine += (1 - x[0])
         else:
             rock += (1 - x[0])
-    print(mine, rock)
+    # print(mine, rock)
     if mine > rock:
-        print("Its a Rock")
+        return 'R'
+        # print("Its a Rock")
     else:
-        print("Its a Mine")
+        return 'M'
+        # print("Its a Mine")
 
 
-
-def findingthebestK(training,validatiuon,test):
-
+def findingthebestK(M, R, df):
+    klist = []
     for x in range(10):
         training = pandas.DataFrame(columns=df.columns)
         validation = pandas.DataFrame(columns=df.columns)
@@ -156,15 +161,107 @@ def findingthebestK(training,validatiuon,test):
         training = response[0]
         validation = response[1]
         test = response[2]
-        k = 1
-        acertos = 0
-        erros = 0
+        k = -1
+        acertosV = 0
+        acertosVN = 0
+        acertosI = 0
+        acertosIN = 0
+        acertosW = 0
+        acertosWN = 0
+        while acertosV <= acertosVN:
+            k += 2
+            acertosV = acertosVN
+            acertosVN = 0
+            for x in validation.iterrows():
+                neighbors = getNeighbors(training, x, k)
+                # print(neighbors)
+                resp = responsebyvote(training, neighbors)
+                if resp == x[1][60]:
+                    acertosVN += 1
+            print(k, acertosVN, acertosVN/len(training.index))
+        k = -1
+        print("valores do voto")
+        while acertosI <= acertosIN:
+            k += 2
+            acertosI = acertosIN
+            acertosIN = 0
+            for x in validation.iterrows():
+                neighbors = getNeighbors(training, x, k)
+                resp = responsebyinverseEuclidian(training, neighbors)
+                if resp == x[1][60]:
+                    acertosIN += 1
+            print(k, acertosIN, acertosIN/len(training.index))
+        k = -1
+        print("valores do Inverso da Euclidiana")
+        while acertosW <= acertosWN:
+            k += 2
+            acertosW = acertosWN
+            acertosWN = 0
+            for x in validation.iterrows():
+                neighbors = getNeighbors(training, x, k)
+                resp = responsebyweightedvote(training, neighbors)
+                if resp == x[1][60]:
+                    acertosWN += 1
+            print(k, acertosWN, acertosWN/len(training.index))
+        print("Valores do Voto ponderado")
+        # klist.append((k, acertos))
+    #print(klist)
+    return klist
+    # responsebyinverseEuclidian(training, neighbors)
+    # responsebyweightedvote(training, neighbors)
 
-        neighbors = getNeighbors(training, test.iloc[0], k)
-        print(neighbors)
-        responsebyvote(training, neighbors)
-        responsebyinverseEuclidian(training, neighbors)
-        responsebyweightedvote(training, neighbors)
+
+def mediaacuracia(M, R, df, ks):
+    klist = []
+    acuraciaV = []
+    acuraciaI = []
+    acuraciaW = []
+
+    for x in range(10):
+        print(x)
+        training = pandas.DataFrame(columns=df.columns)
+        validation = pandas.DataFrame(columns=df.columns)
+        test = pandas.DataFrame(columns=df.columns)
+        response = randonObjectList(training, validation, test, M, R, df.columns)
+        training = response[0]
+        validation = response[1]
+        test = response[2]
+        acertos = 0
+        k = ks[0]
+        for x in test.iterrows():
+            neighbors = getNeighbors(training, x, k)
+            resp = responsebyvote(training, neighbors)
+            if resp == x[1][60]:
+                acertos += 1
+        acuraciaV.append(acertos/len(test.index))
+
+        response = randonObjectList(training, validation, test, M, R, df.columns)
+        training = response[0]
+        validation = response[1]
+        test = response[2]
+        acertos = 0
+        k = ks[1]
+        for x in test.iterrows():
+            neighbors = getNeighbors(training, x, k)
+            resp = responsebyvote(training, neighbors)
+            if resp == x[1][60]:
+                acertos += 1
+        acuraciaI.append(acertos/len(test.index))
+
+        response = randonObjectList(training, validation, test, M, R, df.columns)
+        training = response[0]
+        validation = response[1]
+        test = response[2]
+        acertos = 0
+        k = ks[2]
+        for x in test.iterrows():
+            neighbors = getNeighbors(training, x, k)
+            resp = responsebyvote(training, neighbors)
+            if resp == x[1][60]:
+                acertos += 1
+        acuraciaW.append(acertos / len(test.index))
+
+    return [acuraciaV, acuraciaI, acuraciaW]
 
 
 df = pandas.read_csv('Sonar - Maurício.csv')
@@ -172,6 +269,14 @@ M = df.loc[df['Class'] == 'M']
 R = df.loc[df['Class'] == 'R']
 M = M.reset_index(drop=True)
 R = R.reset_index(drop=True)
+#findingthebestK(M, R, df)
+ks = [5, 7, 5]
+
+rar = mediaacuracia(M, R, df, ks)
+
+print(rar)
+
+
 #MR = pandas.DataFrame(columns=df.columns)
 #MR = MR.append(pandas.Series(M.iloc[0], index=MR.columns), ignore_index=True)
 #MR = MR.append(pandas.Series(R.iloc[0], index=MR.columns), ignore_index=True)
@@ -180,24 +285,24 @@ R = R.reset_index(drop=True)
 #print(MR)
 #MR = MR.drop(MR.index[2])
 #print(MR)
-training = pandas.DataFrame(columns=df.columns)
-validation = pandas.DataFrame(columns=df.columns)
-test = pandas.DataFrame(columns=df.columns)
-response = randonObjectList(training, validation, test, M, R, df.columns)
-training = response[0]
-validation = response[1]
-test = response[2]
-neighbors = getNeighbors(training, test.iloc[0], 10)
-print(neighbors)
+# training = pandas.DataFrame(columns=df.columns)
+# validation = pandas.DataFrame(columns=df.columns)
+# test = pandas.DataFrame(columns=df.columns)
+# response = randonObjectList(training, validation, test, M, R, df.columns)
+# training = response[0]
+# validation = response[1]
+# test = response[2]
+# neighbors = getNeighbors(training, test.iloc[0], 10)
+# print(neighbors)
 # print(training)
 # print(validation)
 # print(test)
-responsebyvote(training, neighbors)
-responsebyinverseEuclidian(training, neighbors)
-responsebyweightedvote(training, neighbors)
-print(test.iloc[0][60])
-n = randonintlist(100, 10)
-n.sort()
+# responsebyvote(training, neighbors)
+# responsebyinverseEuclidian(training, neighbors)
+# responsebyweightedvote(training, neighbors)
+# print(test.iloc[0][60])
+# n = randonintlist(100, 10)
+# n.sort()
 
 
 
